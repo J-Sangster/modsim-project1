@@ -1,15 +1,18 @@
 classdef Subpopulation
     %Subpopulation class
+    % Parameters MUST be in range [0,1]
     % CURRENT LIMITATIONS:
     % (mostly pertains to no time delay)
     % Does not account that vaccination takes effect after 10 days
     % Does not account that there are a limited amount of vaccines
     % Does not account for day 1-7 being most infectious
+    % Does not clamp delta models, meaning total population could change
+    % ASSUMPTIONS 
     % Parameter for vaccinated -> semirisk is assumed equivalent to
     % post-infection -> semirisk
     % Parameter for naive -> vaccinated is assumed equivalent to
     % post-infection -> vaccinated.
-    % Does not clamp delta models, meaning total population could change
+    
     properties
         Psemirisk
         Prisk
@@ -73,6 +76,7 @@ classdef Subpopulation
     
             deltaDeceased = obj.Pdeceased * obj.numInfectious;
             deltaRecovered = obj.Precovered * obj.numInfectious;
+
             
             postInfection = obj.numPostInfection - deltaSemiriskPostInfection - deltaVaccinatedPostInfected + deltaRecovered;
             vaccinated = obj.numVaccinated - deltaSemiriskVaccinated + deltaVaccinatedPostInfected + deltaVaccinatedNaive;
@@ -81,10 +85,10 @@ classdef Subpopulation
             risk = obj.numRisk + deltaRisk - deltaInfectiousRisk;
             infectious = obj.numInfectious + deltaInfectiousSemirisk + deltaInfectiousRisk - deltaRecovered - deltaDeceased;
             deceased = obj.numDeceased + deltaDeceased;
-
+            
         end
 
-        function setStocks(postInfection, vaccinated, naive, semirisk, risk, infectious, deceased)
+        function obj = setStocks(postInfection, vaccinated, naive, semirisk, risk, infectious, deceased)
             obj.numPostInfection = postInfection;
             obj.numVaccinated = vaccinated;
             obj.numNaive = naive;

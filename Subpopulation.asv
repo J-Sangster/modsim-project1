@@ -5,11 +5,13 @@ classdef Subpopulation
     % Does not account that vaccination takes effect after 10 days
     % Does not account that there are a limited amount of vaccines
     % Does not account for day 1-7 being most infectious
+    % Does not clamp delta models, meaning total population could change
+    % ASSUMPTIONS 
     % Parameter for vaccinated -> semirisk is assumed equivalent to
     % post-infection -> semirisk
     % Parameter for naive -> vaccinated is assumed equivalent to
     % post-infection -> vaccinated.
-    % Does not clamp delta models, meaning total population could change
+    
     properties
         Psemirisk
         Prisk
@@ -63,18 +65,35 @@ classdef Subpopulation
             deltaSemiriskVaccinated = obj.Psemirisk * obj.numVaccinated;
             deltaSemiriskPostInfection = obj.Psemirisk * obj.numPostInfection;
 
+            deltaRisk = obj.Prisk * obj.numNaive;
+
             deltaVaccinatedPostInfected = obj.Pvaccinated * obj.numPostInfection;
             deltaVaccinatedNaive = obj.Pvaccinated * obj.numNaive;
-
-            deltaRisk = obj.Prisk * obj.numNaive;
-            deltaInfectious = (obj.numSemirisk * obj.Pinfectivity_semirisk) + (obj.numRisk * obj.Pinfectivity_risk);
+            
+            deltaInfectiousSemirisk = obj.numSemirisk * obj.Pinfectivity_semirisk;
+            deltaInfectiousRisk = obj.numRisk * obj.Pinfectivity_risk;
+    
             deltaDeceased = obj.Pdeceased * obj.numInfectious;
             deltaRecovered = obj.Precovered * obj.numInfectious;
+
+            %clamp values
+            deltaSemiriskVaccinated = max(0, min(obj.numVaccinated, deltaSemiriskVaccinated));
+            deltaSemiriskPostInfection = max(0, min(obj.numPostInfection, deltaSemiriskPostInfection));
+
+            deltaRisk = max(0, min(obj.numNaive, deltaRisk));
             
-            vaccinated = obj.numVaccinated - deltaSemiriskVaccinated + 
+            
+            postInfection = obj.numPostInfection - deltaSemiriskPostInfection - deltaVaccinatedPostInfected + deltaRecovered;
+            vaccinated = obj.numVaccinated - deltaSemiriskVaccinated + deltaVaccinatedPostInfected + deltaVaccinatedNaive;
+            naive = obj.numNaive - deltaRisk - deltaVaccinatedNaive;
+            semirisk = obj.numSemirisk + deltaSemiriskVaccinated + deltaSemiriskPostInfection - deltaInfectiousSemirisk;
+            risk = obj.numRisk + deltaRisk - deltaInfectiousRisk;
+            infectious = obj.numInfectious + deltaInfectiousSemirisk + deltaInfectiousRisk - deltaRecovered - deltaDeceased;
+            deceased = obj.numDeceased + deltaDeceased;
+
         end
 
-        function setStocks(postInfection, vaccinated, naive, semirisk, risk, infectious, deceased)
+        function obj = setStocks(postInfection, vaccinated, naive, semirisk, risk, infectious, deceased)
             obj.numPostInfection = postInfection;
             obj.numVaccinated = vaccinated;
             obj.numNaive = naive;
